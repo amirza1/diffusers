@@ -286,7 +286,7 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    unet, optimizer = accelerator.prepare(unet, optimizer)
+    unet = accelerator.prepare(unet)
 
     # We need to initialize the trackers we use, and also store our configuration.
     # The trackers initializes automatically on the main process.
