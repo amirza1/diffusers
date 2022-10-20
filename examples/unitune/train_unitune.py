@@ -293,6 +293,8 @@ def main():
     if accelerator.is_main_process:
         accelerator.init_trackers("unitune", config=vars(args))
 
+    target_embeddings = target_embeddings.float()
+    target_embeddings = target_embeddings.clone()
     target_embeddings.requires_grad_(False)
     def train_loop(pbar, optimizer, params):
         loss_avg = AverageMeter()
