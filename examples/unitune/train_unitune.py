@@ -286,25 +286,12 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
 
-    target_embeddings = target_embeddings.float()
-    optimized_embeddings = target_embeddings.clone()
-
-    # Optimize the text embeddings first.
-    optimized_embeddings.requires_grad_(True)
-    optimizer = optimizer_class(
-        [optimized_embeddings],  # only optimize embeddings
-        lr=args.emb_learning_rate,
-        betas=(args.adam_beta1, args.adam_beta2),
-        # weight_decay=args.adam_weight_decay,
-        eps=args.adam_epsilon,
-    )
-
     unet, optimizer = accelerator.prepare(unet, optimizer)
 
     # We need to initialize the trackers we use, and also store our configuration.
     # The trackers initializes automatically on the main process.
     if accelerator.is_main_process:
-        accelerator.init_trackers("imagic", config=vars(args))
+        accelerator.init_trackers("unitune", config=vars(args))
 
     def train_loop(pbar, optimizer, params):
         loss_avg = AverageMeter()
