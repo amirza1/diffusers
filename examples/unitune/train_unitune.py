@@ -293,6 +293,7 @@ def main():
     if accelerator.is_main_process:
         accelerator.init_trackers("unitune", config=vars(args))
 
+    target_embeddings.requires_grad_(False)
     def train_loop(pbar, optimizer, params):
         loss_avg = AverageMeter()
         for step in pbar:
@@ -325,6 +326,7 @@ def main():
 
         accelerator.wait_for_everyone()
 
+    unet.train()
     # Fine tune the diffusion model.
     optimizer = optimizer_class(
         accelerator.unwrap_model(unet).parameters(),
@@ -337,7 +339,6 @@ def main():
 
     progress_bar = tqdm(range(args.max_train_steps), disable=not accelerator.is_local_main_process)
     progress_bar.set_description("Fine Tuning")
-    unet.train()
 
     train_loop(progress_bar, optimizer, unet.parameters())
 
