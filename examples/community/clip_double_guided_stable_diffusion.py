@@ -291,6 +291,21 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
                 raise ValueError(f"Unexpected latents shape, got {latents.shape}, expected {latents_shape}")
             latents = latents.to(self.device)
 
+        # set timesteps
+        accepts_offset = "offset" in set(inspect.signature(self.scheduler.set_timesteps).parameters.keys())
+        extra_set_kwargs = {}
+        if accepts_offset:
+            extra_set_kwargs["offset"] = 1
+
+        self.scheduler.set_timesteps(num_inference_steps, **extra_set_kwargs)
+
+        # Some schedulers like PNDM have timesteps as arrays
+        # It's more optimized to move all timesteps to correct device beforehand
+        timesteps_tensor = self.scheduler.timesteps.to(self.device)
+
+        # scale the initial noise by the standard deviation required by the scheduler
+        latents = latents * self.scheduler.init_noise_sigma
+
         for i, t in enumerate(self.progress_bar(timesteps_tensor)):
             # expand the latents if we are doing classifier free guidance
             latent_model_input = torch.cat([latents] * 2) if do_classifier_free_guidance else latents
