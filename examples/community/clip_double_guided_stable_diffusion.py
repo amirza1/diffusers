@@ -152,7 +152,7 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
         image_embeddings_clip = self.clip_model.get_image_features(image)
         image_embeddings_clip = image_embeddings_clip / image_embeddings_clip.norm(p=2, dim=-1, keepdim=True)
 
-        grads = None
+        loss = None
         if text_embeddings_clip is not None:
             if use_cutouts:
                 dists = spherical_dist_loss(image_embeddings_clip, text_embeddings_clip)
@@ -160,22 +160,22 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
                 loss = dists.sum(2).mean(0).sum() * clip_guidance_scale
             else:
                 loss = spherical_dist_loss(image_embeddings_clip, text_embeddings_clip).mean() * clip_guidance_scale
-        
-            grads = -torch.autograd.grad(loss, latents)[0]
 
         if image_embeddings_clip_guidance is not None:
             if use_cutouts:
                 dists = spherical_dist_loss(image_embeddings_clip, image_embeddings_clip_guidance)
                 dists = dists.view([num_cutouts, sample.shape[0], -1])
-                loss = dists.sum(2).mean(0).sum() * clip_guidance_scale
+                img_loss = dists.sum(2).mean(0).sum() * clip_guidance_scale
             else:
-                loss = spherical_dist_loss(image_embeddings_clip, image_embeddings_clip_guidance).mean() * clip_guidance_scale
+                img_loss = spherical_dist_loss(image_embeddings_clip, image_embeddings_clip_guidance).mean() * clip_guidance_scale
 
-            if grads is None:
-                grads = -torch.autograd.grad(loss, latents)[0]
+            if loss is None:
+                loss = img_loss
             else:
-                grads = (grads - torch.autograd.grad(loss, latents)[0])/2.
+                loss = loss + img_loss
 
+        grads = -torch.autograd.grad(loss, latents)[0]
+        
         if isinstance(self.scheduler, LMSDiscreteScheduler):
             latents = latents.detach() + grads * (sigma**2)
             noise_pred = noise_pred_original
@@ -225,6 +225,8 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
         text_embeddings = text_embeddings.repeat_interleave(num_images_per_prompt, dim=0)
 
         if clip_guidance_scale > 0:
+            text_embeddings_clip = None
+            assert clip_image is not None or clip_prompt is not None
             if clip_prompt is not None:
                 clip_text_input = self.tokenizer(
                     clip_prompt,
@@ -233,12 +235,12 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
                     truncation=True,
                     return_tensors="pt",
                 ).input_ids.to(self.device)
-            else:
-                clip_text_input = text_input.input_ids.to(self.device)
-            text_embeddings_clip = self.clip_model.get_text_features(clip_text_input)
-            text_embeddings_clip = text_embeddings_clip / text_embeddings_clip.norm(p=2, dim=-1, keepdim=True)
-            # duplicate text embeddings clip for each generation per prompt
-            text_embeddings_clip = text_embeddings_clip.repeat_interleave(num_images_per_prompt, dim=0)
+            #else:
+            #    clip_text_input = text_input.input_ids.to(self.device)
+                text_embeddings_clip = self.clip_model.get_text_features(clip_text_input)
+                text_embeddings_clip = text_embeddings_clip / text_embeddings_clip.norm(p=2, dim=-1, keepdim=True)
+                # duplicate text embeddings clip for each generation per prompt
+                text_embeddings_clip = text_embeddings_clip.repeat_interleave(num_images_per_prompt, dim=0)
 
             image_embeddings_clip = None
             if clip_image is not None:
