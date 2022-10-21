@@ -111,6 +111,7 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
         clip_guidance_scale,
         num_cutouts,
         use_cutouts=True,
+        print_loss=True,
     ):
         latents = latents.detach().requires_grad_()
 
@@ -174,6 +175,8 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
             else:
                 loss = loss + img_loss
 
+        if print_loss:
+            print("loss: {:.2f}".format(loss))
         grads = -torch.autograd.grad(loss, latents)[0]
         
         if isinstance(self.scheduler, LMSDiscreteScheduler):
@@ -201,6 +204,7 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
         latents: Optional[torch.FloatTensor] = None,
         output_type: Optional[str] = "pil",
         return_dict: bool = True,
+        print_loss: bool = False,
     ):
         if isinstance(prompt, str):
             batch_size = 1
@@ -284,23 +288,8 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
                 latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
         else:
             if latents.shape != latents_shape:
-                raise ValueError(f"Unexpected latents shape, got {latents.shape}, expected {latents_shape}")
-            latents = latents.to(self.device)
-
-        # set timesteps
-        accepts_offset = "offset" in set(inspect.signature(self.scheduler.set_timesteps).parameters.keys())
-        extra_set_kwargs = {}
-        if accepts_offset:
-            extra_set_kwargs["offset"] = 1
-
-        self.scheduler.set_timesteps(num_inference_steps, **extra_set_kwargs)
-
-        # Some schedulers like PNDM have timesteps as arrays
-        # It's more optimized to move all timesteps to correct device beforehand
-        timesteps_tensor = self.scheduler.timesteps.to(self.device)
-
-        # scale the initial noise by the standard deviation required by the scheduler
-        latents = latents * self.scheduler.init_noise_sigma
+                raise ValueError(f"Unexpec.init_noise_sigma
+.init_noise_sigma
 
         for i, t in enumerate(self.progress_bar(timesteps_tensor)):
             # expand the latents if we are doing classifier free guidance
@@ -331,6 +320,7 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
                     clip_guidance_scale,
                     num_cutouts,
                     use_cutouts,
+                    print_loss
                 )
 
             # compute the previous noisy sample x_t -> x_t-1
