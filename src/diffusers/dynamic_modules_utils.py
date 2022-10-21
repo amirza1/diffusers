@@ -245,7 +245,7 @@ def get_cached_module_file(
     # Download and cache module_file from the repo `pretrained_model_name_or_path` of grab it if it's a local file.
     pretrained_model_name_or_path = str(pretrained_model_name_or_path)
     
-    if not os.isfile(module_file_or_url):
+    if not os.path.isfile(module_file_or_url):
         module_file_or_url = os.path.join(pretrained_model_name_or_path, module_file)
 
     if os.path.isfile(module_file_or_url):
