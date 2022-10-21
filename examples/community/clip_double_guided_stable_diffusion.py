@@ -43,7 +43,7 @@ def set_requires_grad(model, value):
         param.requires_grad = value
 
 
-class CLIPGuidedStableDiffusion(DiffusionPipeline):
+class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
     """CLIP guided stable diffusion based on the amazing repo by @crowsonkb and @Jack000
     - https://github.com/Jack000/glid-3-xl
     - https://github.dev/crowsonkb/k-diffusion
