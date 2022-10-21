@@ -288,8 +288,8 @@ class CLIPDoubleGuidedStableDiffusion(DiffusionPipeline):
                 latents = torch.randn(latents_shape, generator=generator, device=self.device, dtype=latents_dtype)
         else:
             if latents.shape != latents_shape:
-                raise ValueError(f"Unexpec.init_noise_sigma
-.init_noise_sigma
+                raise ValueError(f"Unexpected latents shape, got {latents.shape}, expected {latents_shape}")
+            latents = latents.to(self.device)
 
         for i, t in enumerate(self.progress_bar(timesteps_tensor)):
             # expand the latents if we are doing classifier free guidance
